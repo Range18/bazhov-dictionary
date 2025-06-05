@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { FindManyOptions, Like, Repository } from 'typeorm';
+import { FindManyOptions, FindOptionsWhere, Like, Repository } from 'typeorm';
 import { Word } from './entities/word.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOneOptions } from 'typeorm/find-options/FindOneOptions';
@@ -30,9 +30,19 @@ export class WordsService extends BaseEntityService<WordRdo> {
 
   async findAll(query: WordQueryDto) {
     const searchTerm = query.search ? `%${query.search}%` : '%%';
+    const byLetterTerm = query.byLetter ? `${query.byLetter}%` : undefined;
+
+    const whereClause: FindOptionsWhere<Word> = byLetterTerm
+      ? {
+          word: Like(byLetterTerm),
+        }
+      : {
+          word: Like(searchTerm),
+        };
+
     const words = await this.$findAll({
-      where: { word: Like(searchTerm) },
-      order: { word: query.search ? undefined : 'ASC' },
+      where: whereClause,
+      order: { word: query.search || query.byLetter ? undefined : 'ASC' },
     });
 
     return words.map((word) => {

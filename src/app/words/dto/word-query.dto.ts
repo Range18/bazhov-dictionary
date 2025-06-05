@@ -1,7 +1,11 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class WordQueryDto {
   @IsString()
-  @IsNotEmpty()
-  search: string;
+  @IsOptional()
+  search?: string;
+
+  @IsString()
+  @IsOptional()
+  byLetter?: string;
 }
