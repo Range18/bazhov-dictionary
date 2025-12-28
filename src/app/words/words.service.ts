@@ -1,74 +1,87 @@
 import { Injectable } from '@nestjs/common';
-import { FindManyOptions, FindOptionsWhere, Like, Repository } from 'typeorm';
-import { Word } from './entities/word.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOneOptions } from 'typeorm/find-options/FindOneOptions';
-import { BaseEntityService } from '../../core/base/base-entity.service';
-import { WordRdo } from './rdo/word.rdo';
-import {
-  WordNotFoundException,
-  WordNotInExampleException,
-} from '../../core/exceptions';
+import { ILike, Repository } from 'typeorm';
+import { Word } from './entities/word.entity';
 import { WordQueryDto } from './dto/word-query.dto';
+import { CreateWordDto } from './dto/create-word.dto';
+import { UpdateWordDto } from './dto/update-word.dto';
+import {WordNotFoundException} from "../../core/exceptions";
 
 @Injectable()
-export class WordsService extends BaseEntityService<WordRdo> {
+export class WordsService {
   constructor(
-    @InjectRepository(Word)
-    private readonly wordsRepository: Repository<Word>,
-  ) {
-    super(WordRdo);
-  }
+      @InjectRepository(Word)
+      private readonly repo: Repository<Word>,
+  ) {}
 
-  $findAll(options: FindManyOptions<Word>) {
-    return this.wordsRepository.find(options);
-  }
-
-  $findOne(options: FindOneOptions<Word>) {
-    return this.wordsRepository.findOne(options);
-  }
-
-  async findAll(query: WordQueryDto) {
-    const searchTerm = query.search ? `%${query.search}%` : '%%';
-    const byLetterTerm = query.byLetter ? `${query.byLetter}%` : undefined;
-
-    const whereClause: FindOptionsWhere<Word> = byLetterTerm
-      ? {
-          word: Like(byLetterTerm),
-        }
-      : {
-          word: Like(searchTerm),
-        };
-
-    const words = await this.$findAll({
-      where: whereClause,
-      order: { word: query.search || query.byLetter ? undefined : 'ASC' },
+  async create(dto: CreateWordDto): Promise<Word> {
+    const entity = this.repo.create({
+      word: dto.word,
+      wordWithAccent: dto.wordWithAccent,
+      description: dto.description,
+      exampleText: dto.exampleText,
+      ...(dto.taleId ? { tale: { id: dto.taleId } } : {}),
     });
 
-    return words.map((word) => {
-      word.exampleText = this.boldWordInText(word);
-      return word;
+    return this.repo.save(entity);
+  }
+
+  async findAll(query: WordQueryDto): Promise<Word[]> {
+    const where: any = {};
+
+    if (query.search) {
+      where.word = ILike(`%${query.search}%`);
+    }
+
+    if (query.byLetter) {
+      where.word = ILike(`${query.byLetter}%`);
+    }
+
+    return this.repo.find({
+      where,
+      relations: { tale: true },
+      order: { word: 'ASC' },
     });
   }
 
-  async findOne(id: string) {
-    const word = await this.$findOne({ where: { id } });
+  async findOne(id: string): Promise<Word> {
+    const entity = await this.repo.findOne({
+      where: { id },
+      relations: { tale: true },
+    });
 
-    if (!word) {
+    if (!entity) {
       throw new WordNotFoundException();
     }
 
-    word.exampleText = this.boldWordInText(word);
-    return word;
+    return entity;
   }
 
-  private boldWordInText(wordEntity: Word): string {
-    const pattern = new RegExp(`\\b(${wordEntity.word})\\b`, 'gi');
-
-    if (!pattern.test(wordEntity.exampleText)) {
-      throw new WordNotInExampleException();
+  async update(id: string, dto: UpdateWordDto): Promise<Word> {
+    const entity = await this.repo.findOne({ where: { id }, relations: { tale: true } });
+    if (!entity) {
+      throw new WordNotFoundException();
     }
 
-    return wordEntity.exampleText.replace(pattern, '<strong>$1</strong>');
+    if (dto.word !== undefined) entity.word = dto.word;
+    if (dto.wordWithAccent !== undefined) entity.wordWithAccent = dto.wordWithAccent;
+    if (dto.description !== undefined) entity.description = dto.description;
+    if (dto.exampleText !== undefined) entity.exampleText = dto.exampleText;
+
+    if (dto.taleId !== undefined) {
+      entity.tale = dto.taleId ? ({ id: dto.taleId } as any) : null;
+    }
+
+    return this.repo.save(entity);
+  }
+
+  async remove(id: string): Promise<{ deleted: true; id: string }> {
+    const entity = await this.repo.findOne({ where: { id } });
+    if (!entity) {
+      throw new WordNotFoundException();
+    }
+
+    await this.repo.remove(entity);
+    return { deleted: true, id };
   }
 }
