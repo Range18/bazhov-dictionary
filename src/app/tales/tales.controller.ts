@@ -1,23 +1,77 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import {
+  ApiBadRequestResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
+
 import { TalesService } from './tales.service';
-import { ApiTags } from '@nestjs/swagger';
 import { TaleQueryDto } from './dto/tale-query.dto';
 import { TaleRdo } from './rdo/tale.rdo';
+import { BaseEntityService } from '../../core/base/base-entity.service';
+import { CreateTaleDto } from './dto/create-tale.dto';
+import { UpdateTaleDto } from './dto/update-tale.dto';
 
 @ApiTags('Tales')
 @Controller('tales')
-export class TalesController {
-  constructor(private readonly talesService: TalesService) {}
+export class TalesController extends BaseEntityService<TaleRdo> {
+  constructor(private readonly talesService: TalesService) {
+    super(TaleRdo);
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Create tale' })
+  @ApiOkResponse({ type: TaleRdo })
+  @ApiBadRequestResponse({ description: 'Validation error' })
+  async create(@Body() dto: CreateTaleDto): Promise<TaleRdo> {
+    return this.formatToRdo(await this.talesService.create(dto));
+  }
 
   @Get()
+  @ApiOperation({ summary: 'Get tales list (search by name)' })
+  @ApiOkResponse({ type: TaleRdo, isArray: true })
   async findAll(@Query() query: TaleQueryDto): Promise<TaleRdo[]> {
-    return this.talesService.formatToRdo(
-      await this.talesService.findAll(query),
-    );
+    return this.formatToRdo(await this.talesService.findAll(query));
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string): Promise<TaleRdo> {
-    return this.talesService.formatToRdo(await this.talesService.findOne(id));
+  @ApiOperation({ summary: 'Get tale by id' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({ type: TaleRdo })
+  @ApiNotFoundResponse({ description: 'Tale not found' })
+  async findOne(@Param('id', new ParseUUIDPipe()) id: string): Promise<TaleRdo> {
+    return this.formatToRdo(await this.talesService.findOne(id));
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update tale by id (name / taleImageId / detach image with null)' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({ type: TaleRdo })
+  @ApiNotFoundResponse({ description: 'Tale not found' })
+  async update(
+      @Param('id', new ParseUUIDPipe()) id: string,
+      @Body() dto: UpdateTaleDto,
+  ): Promise<TaleRdo> {
+    return this.formatToRdo(await this.talesService.update(id, dto));
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete tale by id' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        deleted: { type: 'boolean', example: true },
+        id: { type: 'string', format: 'uuid' },
+      },
+    },
+  })
+  @ApiNotFoundResponse({ description: 'Tale not found' })
+  async remove(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.talesService.remove(id);
   }
 }

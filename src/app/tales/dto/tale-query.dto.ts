@@ -1,7 +1,9 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString } from 'class-validator';
 
 export class TaleQueryDto {
+  @ApiPropertyOptional({ example: 'каменный', description: 'Search by name' })
   @IsString()
-  @IsNotEmpty()
-  search: string;
+  @IsOptional()
+  search?: string;
 }

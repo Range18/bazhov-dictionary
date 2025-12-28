@@ -1,50 +1,71 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindManyOptions, Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { Tale } from './entities/tale.entity';
-import { FindOneOptions } from 'typeorm/find-options/FindOneOptions';
-import { TaleNotFoundException } from '../../core/exceptions';
-import { BaseEntityService } from '../../core/base/base-entity.service';
-import { TaleRdo } from './rdo/tale.rdo';
 import { TaleQueryDto } from './dto/tale-query.dto';
+import { CreateTaleDto } from './dto/create-tale.dto';
+import { UpdateTaleDto } from './dto/update-tale.dto';
+import { TaleImage } from '../tale-images/entities/tale-image.entity';
+import { TaleNotFoundException } from '../../core/exceptions';
 
 @Injectable()
-export class TalesService extends BaseEntityService<TaleRdo> {
+export class TalesService {
   constructor(
-    @InjectRepository(Tale)
-    private readonly taleRepository: Repository<Tale>,
-  ) {
-    super(TaleRdo);
-  }
+      @InjectRepository(Tale)
+      private readonly repo: Repository<Tale>,
+  ) {}
 
-  $findAll(options: FindManyOptions<Tale>) {
-    return this.taleRepository.find(options);
-  }
-
-  $findOne(options: FindOneOptions<Tale>) {
-    return this.taleRepository.findOne(options);
-  }
-
-  async findAll(query: TaleQueryDto) {
-    const tales = await this.$findAll({
-      where: { name: query.search },
-      relations: { words: true },
+  async create(dto: CreateTaleDto): Promise<Tale> {
+    const entity = this.repo.create({
+      name: dto.name,
+      taleImage: dto.taleImageId ? ({ id: dto.taleImageId } as TaleImage) : null,
     });
 
-    if (query.search && tales.length === 0) {
-      throw new TaleNotFoundException();
-    }
-
-    return tales;
+    return this.repo.save(entity);
   }
 
-  async findOne(id: string) {
-    const tale = await this.$findOne({ where: { id } });
+  async findAll(query: TaleQueryDto): Promise<Tale[]> {
+    const where: any = {};
+    if (query.search) where.name = ILike(`%${query.search}%`);
 
-    if (!tale) {
+    return this.repo.find({
+      where,
+      order: { name: 'ASC' },
+    });
+  }
+
+  async findOne(id: string): Promise<Tale> {
+    const entity = await this.repo.findOne({ where: { id } });
+    if (!entity) {
+      throw new TaleNotFoundException();
+    }
+    return entity;
+  }
+
+  async update(id: string, dto: UpdateTaleDto): Promise<Tale> {
+    const entity = await this.repo.findOne({ where: { id } });
+    if (!entity) {
       throw new TaleNotFoundException();
     }
 
-    return tale;
+    if (dto.name !== undefined) entity.name = dto.name;
+
+    if (dto.taleImageId !== undefined) {
+      entity.taleImage = dto.taleImageId
+          ? ({ id: dto.taleImageId } as TaleImage)
+          : null;
+    }
+
+    return this.repo.save(entity);
+  }
+
+  async remove(id: string): Promise<{ deleted: true; id: string }> {
+    const entity = await this.repo.findOne({ where: { id } });
+    if (!entity) {
+      throw new TaleNotFoundException();
+    }
+
+    await this.repo.remove(entity);
+    return { deleted: true, id };
   }
 }
