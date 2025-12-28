@@ -1,4 +1,5 @@
 import { get } from 'env-var';
+import "dotenv/config";
 import path from 'path';
 
 const storagePathFromEnv = get('STORAGE_PATH').default('storage').asString();

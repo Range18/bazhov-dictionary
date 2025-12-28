@@ -1,4 +1,5 @@
 import { get } from 'env-var';
+import "dotenv/config";
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 
 export const databaseConfig: TypeOrmModuleOptions = {
