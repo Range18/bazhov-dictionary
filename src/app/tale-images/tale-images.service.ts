@@ -1,26 +1,44 @@
 import { Injectable } from '@nestjs/common';
-import { CreateTaleImageDto } from './dto/create-tale-image.dto';
-import { UpdateTaleImageDto } from './dto/update-tale-image.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { TaleImage } from './entities/tale-image.entity';
+import { TaleImageNotFoundException } from '../../core/exceptions';
 
 @Injectable()
 export class TaleImagesService {
-  create(createTaleImageDto: CreateTaleImageDto) {
-    return 'This action adds a new taleImage';
+  constructor(
+      @InjectRepository(TaleImage)
+      private readonly repo: Repository<TaleImage>,
+  ) {}
+
+  async create(filename: string): Promise<TaleImage> {
+    const entity = this.repo.create({ filename });
+    return this.repo.save(entity);
   }
 
-  findAll() {
-    return `This action returns all taleImages`;
+  async findAll(): Promise<TaleImage[]> {
+    return this.repo.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} taleImage`;
+  async findOne(id: string): Promise<TaleImage> {
+    const entity = await this.repo.findOne({ where: { id } });
+    if (!entity) throw new TaleImageNotFoundException();
+    return entity;
   }
 
-  update(id: number, updateTaleImageDto: UpdateTaleImageDto) {
-    return `This action updates a #${id} taleImage`;
+  async update(id: string, filename: string): Promise<TaleImage> {
+    const entity = await this.repo.findOne({ where: { id } });
+    if (!entity) throw new TaleImageNotFoundException();
+
+    entity.filename = filename;
+    return this.repo.save(entity);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} taleImage`;
+  async remove(id: string): Promise<{ deleted: true; id: string }> {
+    const entity = await this.repo.findOne({ where: { id } });
+    if (!entity) throw new TaleImageNotFoundException();
+
+    await this.repo.remove(entity);
+    return { deleted: true, id };
   }
 }

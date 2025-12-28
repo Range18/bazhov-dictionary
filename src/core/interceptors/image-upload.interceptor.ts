@@ -1,0 +1,32 @@
+import {BadRequestException, NestInterceptor, Type} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { randomUUID } from 'crypto';
+
+type MulterInterceptor =  Type<NestInterceptor<any, any>>;
+
+function imageFileFilter(_req: any, file: Express.Multer.File, cb: any) {
+    if (!file?.mimetype?.startsWith('image/')) {
+        return cb(new BadRequestException('Only image files are allowed'), false);
+    }
+    cb(null, true);
+}
+
+export function ImageFileInterceptor(
+    fieldName = 'file',
+    folder = 'tale-images',
+    maxSizeMb = 10,
+): MulterInterceptor {
+    return FileInterceptor(fieldName, {
+        fileFilter: imageFileFilter,
+        limits: { fileSize: maxSizeMb * 1024 * 1024 },
+        storage: diskStorage({
+            destination: `./uploads/${folder}`,
+            filename: (_req, file, cb) => {
+                const ext = extname(file.originalname) || '';
+                cb(null, `${randomUUID()}${ext}`);
+            },
+        }),
+    });
+}
