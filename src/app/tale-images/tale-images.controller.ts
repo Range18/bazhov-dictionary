@@ -6,21 +6,36 @@ import {
   Param,
   ParseUUIDPipe,
   Patch,
-  Post, Res,
+  Post,
+  Res,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
+import {
+  ApiBadRequestResponse,
+  ApiConsumes,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+  ApiBody,
+  ApiProduces,
+} from '@nestjs/swagger';
+import { Response } from 'express';
+import { createReadStream, existsSync } from 'fs';
+import * as path from 'path';
+
 import { TaleImagesService } from './tale-images.service';
 import { BaseEntityService } from '../../core/base/base-entity.service';
 import { TaleImageRdo } from './rdo/tale-image.rdo';
-import {ImageFileInterceptor} from "../../core/interceptors/image-upload.interceptor";
-import path from 'path';
-import {taleImagesStorageConfig} from "../../core/configs";
-import {createReadStream, existsSync} from "fs";
-import {resolveMimeType} from "../../core/utils/resolve-mimetype";
-import {Response} from "express";
-import {TaleImageNotFoundException} from "../../core/exceptions";
+import { ImageFileInterceptor } from '../../core/interceptors/image-upload.interceptor';
+import { taleImagesStorageConfig } from '../../core/configs';
+import { resolveMimeType } from '../../core/utils/resolve-mimetype';
+import { TaleImageNotFoundException } from '../../core/exceptions';
+import { TaleImageUploadBody } from './swagger/tale-image-upload.swagger';
 
+@ApiTags('Tale Images')
 @Controller('tale-images')
 export class TaleImagesController extends BaseEntityService<TaleImageRdo> {
   constructor(private readonly taleImagesService: TaleImagesService) {
@@ -28,6 +43,11 @@ export class TaleImagesController extends BaseEntityService<TaleImageRdo> {
   }
 
   @Post()
+  @ApiOperation({ summary: 'Upload a new tale image' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: TaleImageUploadBody })
+  @ApiOkResponse({ type: TaleImageRdo })
+  @ApiBadRequestResponse({ description: 'file is required / Only image files are allowed' })
   @UseInterceptors(ImageFileInterceptor('file', 'tale-images', 50))
   async create(@UploadedFile() file?: Express.Multer.File) {
     if (!file) throw new BadRequestException('file is required');
@@ -37,36 +57,53 @@ export class TaleImagesController extends BaseEntityService<TaleImageRdo> {
   }
 
   @Get()
+  @ApiOperation({ summary: 'Get all tale images' })
+  @ApiOkResponse({ type: TaleImageRdo, isArray: true })
   async findAll() {
     const entities = await this.taleImagesService.findAll();
     return this.formatToRdo(entities);
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get tale image by id (metadata)' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({ type: TaleImageRdo })
+  @ApiNotFoundResponse({ description: 'TaleImage not found' })
   async findOne(@Param('id', new ParseUUIDPipe()) id: string) {
     const entity = await this.taleImagesService.findOne(id);
     return this.formatToRdo(entity);
   }
 
   @Get(':id/source')
+  @ApiOperation({ summary: 'Get image file by id (binary)' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiProduces('image/*')
+  @ApiOkResponse({
+    description: 'Binary image stream',
+    schema: { type: 'string', format: 'binary' },
+  })
+  @ApiNotFoundResponse({ description: 'TaleImage not found / File not found' })
   async getOneSource(
       @Param('id', new ParseUUIDPipe()) id: string,
       @Res() res: Response,
   ) {
     const entity = await this.taleImagesService.findOne(id);
 
-    // Абсолютный путь: <project>/STORAGE_PATH/tale-images/<filename>
     const filePath = path.resolve(taleImagesStorageConfig.path, entity.filename);
-
     if (!existsSync(filePath)) throw new TaleImageNotFoundException();
 
     res.setHeader('Content-Type', resolveMimeType(entity.filename));
-
-    const stream = createReadStream(filePath);
-    return stream.pipe(res);
+    return createReadStream(filePath).pipe(res);
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Replace image file by id' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: TaleImageUploadBody })
+  @ApiOkResponse({ type: TaleImageRdo })
+  @ApiBadRequestResponse({ description: 'file is required / Only image files are allowed' })
+  @ApiNotFoundResponse({ description: 'TaleImage not found' })
   @UseInterceptors(ImageFileInterceptor('file', 'tale-images', 50))
   async update(
       @Param('id', new ParseUUIDPipe()) id: string,
@@ -79,6 +116,18 @@ export class TaleImagesController extends BaseEntityService<TaleImageRdo> {
   }
 
   @Delete(':id')
+  @ApiOperation({ summary: 'Delete tale image record by id' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOkResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        deleted: { type: 'boolean', example: true },
+        id: { type: 'string', format: 'uuid' },
+      },
+    },
+  })
+  @ApiNotFoundResponse({ description: 'TaleImage not found' })
   async remove(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.taleImagesService.remove(id);
   }
