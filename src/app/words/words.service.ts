@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Word } from './entities/word.entity';
 import { WordQueryDto } from './dto/word-query.dto';
 import { CreateWordDto } from './dto/create-word.dto';
@@ -26,22 +26,24 @@ export class WordsService {
     return this.repo.save(entity);
   }
 
-  async findAll(query: WordQueryDto): Promise<Word[]> {
-    const where: any = {};
+  async findAll(query: WordQueryDto) {
+    const qb = this.repo
+        .createQueryBuilder('w')
+        .leftJoinAndSelect('w.tale', 't');
+
+    if (query.taleId) {
+      qb.andWhere('t.id = :taleId', { taleId: query.taleId });
+    }
 
     if (query.search) {
-      where.word = ILike(`%${query.search}%`);
+      qb.andWhere('(w.word ILIKE :s OR w.wordWithAccent ILIKE :s)', { s: `%${query.search}%` });
     }
 
     if (query.byLetter) {
-      where.word = ILike(`${query.byLetter}%`);
+      qb.andWhere('w.word ILIKE :p', { p: `${query.byLetter}%` });
     }
 
-    return this.repo.find({
-      where,
-      relations: { tale: true },
-      order: { word: 'ASC' },
-    });
+    return qb.orderBy('w.word', 'ASC').getMany();
   }
 
   async findOne(id: string): Promise<Word> {
