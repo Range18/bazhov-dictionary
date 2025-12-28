@@ -30,7 +30,20 @@ async function bootstrap() {
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
 
-  const config = new DocumentBuilder().build();
+
+  const config = new DocumentBuilder()
+      .setTitle('Словарь Бажова API')
+      .setDescription('API documentation for Словарь Бажова')
+      .setVersion('1.0')
+      .addApiKey(
+          {
+            type: 'apiKey',
+            name: 'x-api-key',
+            in: 'header',
+          },
+          'apiKey',
+      )
+      .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
 

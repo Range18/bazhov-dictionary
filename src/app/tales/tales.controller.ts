@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import {Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiNotFoundResponse,
@@ -14,6 +14,7 @@ import { TaleRdo } from './rdo/tale.rdo';
 import { BaseEntityService } from '../../core/base/base-entity.service';
 import { CreateTaleDto } from './dto/create-tale.dto';
 import { UpdateTaleDto } from './dto/update-tale.dto';
+import {ApiKeyGuard} from "../../core/decorator/api-key-guard.decorator";
 
 @ApiTags('Tales')
 @Controller('tales')
@@ -23,6 +24,7 @@ export class TalesController extends BaseEntityService<TaleRdo> {
   }
 
   @Post()
+  @ApiKeyGuard()
   @ApiOperation({ summary: 'Create tale' })
   @ApiOkResponse({ type: TaleRdo })
   @ApiBadRequestResponse({ description: 'Validation error' })
@@ -47,6 +49,7 @@ export class TalesController extends BaseEntityService<TaleRdo> {
   }
 
   @Patch(':id')
+  @ApiKeyGuard()
   @ApiOperation({ summary: 'Update tale by id (name / taleImageId / detach image with null)' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: TaleRdo })
@@ -59,6 +62,7 @@ export class TalesController extends BaseEntityService<TaleRdo> {
   }
 
   @Delete(':id')
+  @ApiKeyGuard()
   @ApiOperation({ summary: 'Delete tale by id' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({

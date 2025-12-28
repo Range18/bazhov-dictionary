@@ -3,4 +3,5 @@ import "dotenv/config";
 
 export const apiConfig = {
   port: get('API_PORT').default('3000').asPortNumber(),
+  apiKey: get('API_KEY').required().asString(),
 };

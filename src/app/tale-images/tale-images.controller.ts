@@ -34,6 +34,7 @@ import { taleImagesStorageConfig } from '../../core/configs';
 import { resolveMimeType } from '../../core/utils/resolve-mimetype';
 import { TaleImageNotFoundException } from '../../core/exceptions';
 import { TaleImageUploadBody } from './swagger/tale-image-upload.swagger';
+import {ApiKeyGuard} from "../../core/decorator/api-key-guard.decorator";
 
 @ApiTags('Tale Images')
 @Controller('tale-images')
@@ -43,6 +44,7 @@ export class TaleImagesController extends BaseEntityService<TaleImageRdo> {
   }
 
   @Post()
+  @ApiKeyGuard()
   @ApiOperation({ summary: 'Upload a new tale image' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({ type: TaleImageUploadBody })
@@ -97,6 +99,7 @@ export class TaleImagesController extends BaseEntityService<TaleImageRdo> {
   }
 
   @Patch(':id')
+  @ApiKeyGuard()
   @ApiOperation({ summary: 'Replace image file by id' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiConsumes('multipart/form-data')
@@ -116,6 +119,7 @@ export class TaleImagesController extends BaseEntityService<TaleImageRdo> {
   }
 
   @Delete(':id')
+  @ApiKeyGuard()
   @ApiOperation({ summary: 'Delete tale image record by id' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({

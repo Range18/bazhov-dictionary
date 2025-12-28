@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import {Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query} from '@nestjs/common';
 import { ApiBadRequestResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { WordsService } from './words.service';
@@ -7,6 +7,7 @@ import { CreateWordDto } from './dto/create-word.dto';
 import { UpdateWordDto } from './dto/update-word.dto';
 import { WordRdo } from './rdo/word.rdo';
 import { BaseEntityService } from '../../core/base/base-entity.service';
+import {ApiKeyGuard} from "../../core/decorator/api-key-guard.decorator";
 
 @ApiTags('Words')
 @Controller('words')
@@ -16,6 +17,7 @@ export class WordsController extends BaseEntityService<WordRdo> {
   }
 
   @Post()
+  @ApiKeyGuard()
   @ApiOperation({ summary: 'Create word' })
   @ApiOkResponse({ type: WordRdo })
   @ApiBadRequestResponse({ description: 'Validation error' })
@@ -40,6 +42,7 @@ export class WordsController extends BaseEntityService<WordRdo> {
   }
 
   @Patch(':id')
+  @ApiKeyGuard()
   @ApiOperation({ summary: 'Update word by id' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({ type: WordRdo })
@@ -52,6 +55,7 @@ export class WordsController extends BaseEntityService<WordRdo> {
   }
 
   @Delete(':id')
+  @ApiKeyGuard()
   @ApiOperation({ summary: 'Delete word by id' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({
