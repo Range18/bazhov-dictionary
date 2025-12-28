@@ -5,22 +5,21 @@ services:
       dockerfile: Dockerfile
     container_name: bazhov-api
     ports:
-      - ${API_PORT}:${API_PORT}
+      - "${API_PORT}:3000"
     environment:
-      # ---- app ----
-      SITE_URL: "http://localhost:${API_PORT}"
+      PORT: ${API_PORT}
+
+      SITE_URL: ${SITE_URL}
       API_KEY: ${API_KEY}
 
-      # ---- storage ----
       STORAGE_PATH: "/app/${STORAGE}"
 
-      # ---- db ----
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
-      DB_TYPE: ${DB_TYPE}
+      DB_HOST: ${DATABASE_HOST}
+      DB_PORT: ${DATABASE_PORT}
+      DB_USER: ${DATABASE_USER}
+      DB_PASSWORD: ${DATABASE_PASSWORD}
+      DB_NAME: ${DATABASE_NAME}
+      DB_TYPE: ${DATABASE_TYPE}
     volumes:
       - storage:/app/${STORAGE}
     depends_on:
@@ -32,9 +31,9 @@ services:
     ports:
       - "5433:5432"
     environment:
-      POSTGRES_USER: "postgres"
-      POSTGRES_PASSWORD: "postgres"
-      POSTGRES_DB: "bazhov_dictionary"
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
     volumes:
       - pgdata:/var/lib/postgresql/data
 
