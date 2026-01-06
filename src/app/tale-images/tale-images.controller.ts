@@ -13,14 +13,14 @@ import {
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiBody,
   ApiConsumes,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
-  ApiTags,
-  ApiBody,
   ApiProduces,
+  ApiTags,
 } from '@nestjs/swagger';
 import { Response } from 'express';
 import { createReadStream, existsSync } from 'fs';
@@ -34,7 +34,7 @@ import { taleImagesStorageConfig } from '../../core/configs';
 import { resolveMimeType } from '../../core/utils/resolve-mimetype';
 import { TaleImageNotFoundException } from '../../core/exceptions';
 import { TaleImageUploadBody } from './swagger/tale-image-upload.swagger';
-import {ApiKeyGuard} from "../../core/decorator/api-key-guard.decorator";
+import { ApiKeyGuard } from '../../core/decorator/api-key-guard.decorator';
 
 @ApiTags('Tale Images')
 @Controller('tale-images')
@@ -49,12 +49,14 @@ export class TaleImagesController extends BaseEntityService<TaleImageRdo> {
   @ApiConsumes('multipart/form-data')
   @ApiBody({ type: TaleImageUploadBody })
   @ApiOkResponse({ type: TaleImageRdo })
-  @ApiBadRequestResponse({ description: 'file is required / Only image files are allowed' })
+  @ApiBadRequestResponse({
+    description: 'file is required / Only image files are allowed',
+  })
   @UseInterceptors(ImageFileInterceptor('file', 'tale-images', 50))
   async create(@UploadedFile() file?: Express.Multer.File) {
     if (!file) throw new BadRequestException('file is required');
 
-    const entity = await this.taleImagesService.create(file.filename);
+    const entity = await this.taleImagesService.create(file);
     return this.formatToRdo(entity);
   }
 
@@ -86,12 +88,15 @@ export class TaleImagesController extends BaseEntityService<TaleImageRdo> {
   })
   @ApiNotFoundResponse({ description: 'TaleImage not found / File not found' })
   async getOneSource(
-      @Param('id', new ParseUUIDPipe()) id: string,
-      @Res() res: Response,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Res() res: Response,
   ) {
     const entity = await this.taleImagesService.findOne(id);
 
-    const filePath = path.resolve(taleImagesStorageConfig.path, entity.filename);
+    const filePath = path.resolve(
+      taleImagesStorageConfig.path,
+      entity.filename,
+    );
     if (!existsSync(filePath)) throw new TaleImageNotFoundException();
 
     res.setHeader('Content-Type', resolveMimeType(entity.filename));
@@ -105,12 +110,14 @@ export class TaleImagesController extends BaseEntityService<TaleImageRdo> {
   @ApiConsumes('multipart/form-data')
   @ApiBody({ type: TaleImageUploadBody })
   @ApiOkResponse({ type: TaleImageRdo })
-  @ApiBadRequestResponse({ description: 'file is required / Only image files are allowed' })
+  @ApiBadRequestResponse({
+    description: 'file is required / Only image files are allowed',
+  })
   @ApiNotFoundResponse({ description: 'TaleImage not found' })
   @UseInterceptors(ImageFileInterceptor('file', 'tale-images', 50))
   async update(
-      @Param('id', new ParseUUIDPipe()) id: string,
-      @UploadedFile() file?: Express.Multer.File,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @UploadedFile() file?: Express.Multer.File,
   ) {
     if (!file) throw new BadRequestException('file is required');
 
