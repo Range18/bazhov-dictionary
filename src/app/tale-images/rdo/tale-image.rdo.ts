@@ -16,6 +16,10 @@ export class TaleImageRdo {
     @Expose()
     filename: string;
 
+    @ApiProperty({ example: 'originalName.png', description: 'Stored originalName in storage' })
+    @Expose()
+    originalName: string;
+
     @ApiProperty({ description: 'Link to get image source' })
     @Expose()
     get link(): string {
