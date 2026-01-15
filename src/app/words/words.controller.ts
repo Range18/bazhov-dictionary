@@ -27,9 +27,18 @@ export class WordsController extends BaseEntityService<WordRdo> {
 
   @Get()
   @ApiOperation({ summary: 'Get words list (with filters)' })
-  @ApiOkResponse({ type: WordRdo, isArray: true })
+  @ApiOkResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'array', items: { $ref: '#/components/schemas/WordRdo' } },
+        count: { type: 'number', example: 123 },
+      },
+    },
+  })
   async findAll(@Query() query: WordQueryDto) {
-    return this.formatToRdo(await this.wordsService.findAll(query));
+    const { data, count } = await this.wordsService.findAll(query);
+    return { data: this.formatToRdo(data), count };
   }
 
   @Get(':id')

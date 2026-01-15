@@ -26,7 +26,11 @@ export class WordsService {
     return this.repo.save(entity);
   }
 
-  async findAll(query: WordQueryDto) {
+  async findAll(query: WordQueryDto): Promise<{ data: Word[]; count: number }> {
+    const page = query.page;
+    const limit = query.limit;
+    const skip = page !== undefined && limit !== undefined ? (page - 1) * limit : undefined;
+
     const qb = this.repo
         .createQueryBuilder('w')
         .leftJoinAndSelect('w.tale', 't');
@@ -43,7 +47,13 @@ export class WordsService {
       qb.andWhere('w.word ILIKE :p', { p: `${query.byLetter}%` });
     }
 
-    return qb.orderBy('w.word', 'ASC').getMany();
+    const [data, count] = await qb
+        .orderBy('w.word', 'ASC')
+        .skip(skip)
+        .take(limit)
+        .getManyAndCount();
+
+    return { data, count };
   }
 
   async findOne(id: string): Promise<Word> {
