@@ -7,12 +7,15 @@ import { TaleImageNotFoundException } from '../../core/exceptions';
 @Injectable()
 export class TaleImagesService {
   constructor(
-      @InjectRepository(TaleImage)
-      private readonly repo: Repository<TaleImage>,
+    @InjectRepository(TaleImage)
+    private readonly repo: Repository<TaleImage>,
   ) {}
 
-  async create(filename: string): Promise<TaleImage> {
-    const entity = this.repo.create({ filename });
+  async create(file: Express.Multer.File): Promise<TaleImage> {
+    const entity = this.repo.create({
+      filename: file.filename,
+      originalName: file.originalname,
+    });
     return this.repo.save(entity);
   }
 
