@@ -31,8 +31,8 @@ export class WordsService {
         .createQueryBuilder('w')
         .leftJoinAndSelect('w.tale', 't');
 
-    if (query.taleId) {
-      qb.andWhere('t.id = :taleId', { taleId: query.taleId });
+    if (query.tale) {
+      qb.andWhere('t.slug = :slug', { slug: query.tale });
     }
 
     if (query.search) {
