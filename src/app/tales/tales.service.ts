@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Tale } from './entities/tale.entity';
 import { TaleQueryDto } from './dto/tale-query.dto';
 import { CreateTaleDto } from './dto/create-tale.dto';
@@ -11,27 +11,44 @@ import { TaleNotFoundException } from '../../core/exceptions';
 @Injectable()
 export class TalesService {
   constructor(
-      @InjectRepository(Tale)
-      private readonly repo: Repository<Tale>,
+    @InjectRepository(Tale)
+    private readonly repo: Repository<Tale>,
   ) {}
 
   async create(dto: CreateTaleDto): Promise<Tale> {
     const entity = this.repo.create({
       name: dto.name,
-      taleImage: dto.taleImageId ? ({ id: dto.taleImageId } as TaleImage) : null,
+      taleImage: dto.taleImageId
+        ? ({ id: dto.taleImageId } as TaleImage)
+        : null,
     });
 
     return this.repo.save(entity);
   }
 
-  async findAll(query: TaleQueryDto): Promise<Tale[]> {
-    const where: any = {};
-    if (query.search) where.name = ILike(`%${query.search}%`);
+  async findAll(query: TaleQueryDto): Promise<{ data: Tale[]; count: number }> {
+    const page = query.page;
+    const limit = query.limit;
+    const skip =
+      page !== undefined && limit !== undefined
+        ? (page - 1) * limit
+        : undefined;
 
-    return this.repo.find({
-      where,
-      order: { name: 'ASC' },
-    });
+    const qb = this.repo
+      .createQueryBuilder('t')
+      .leftJoinAndSelect('t.taleImage', 'taleImage');
+
+    if (query.search) {
+      qb.andWhere('t.name ILIKE :s', { s: `%${query.search}%` });
+    }
+
+    const [data, count] = await qb
+      .orderBy('t.name', 'ASC')
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    return { data, count };
   }
 
   async findOne(id: string): Promise<Tale> {
@@ -52,8 +69,8 @@ export class TalesService {
 
     if (dto.taleImageId !== undefined) {
       entity.taleImage = dto.taleImageId
-          ? ({ id: dto.taleImageId } as TaleImage)
-          : null;
+        ? ({ id: dto.taleImageId } as TaleImage)
+        : null;
     }
 
     return this.repo.save(entity);
