@@ -4,6 +4,7 @@ import { diskStorage } from 'multer';
 import path, { extname } from 'path';
 import { randomUUID } from 'crypto';
 import { storageConfig } from '../configs';
+import { fixOriginalName } from '../utils/fix-originalname';
 
 type MulterInterceptor = Type<NestInterceptor<any, any>>;
 
@@ -25,7 +26,8 @@ export function ImageFileInterceptor(
     storage: diskStorage({
       destination: path.join(storageConfig.path, folder),
       filename: (_req, file, cb) => {
-        const ext = extname(file.originalname) || '';
+        const original = fixOriginalName(file.originalname);
+        const ext = extname(original) || '';
         cb(null, `${randomUUID()}${ext}`);
       },
     }),
