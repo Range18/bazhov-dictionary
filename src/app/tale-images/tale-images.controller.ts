@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Res,
+  StreamableFile,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -87,10 +88,7 @@ export class TaleImagesController extends BaseEntityService<TaleImageRdo> {
     schema: { type: 'string', format: 'binary' },
   })
   @ApiNotFoundResponse({ description: 'TaleImage not found / File not found' })
-  async getOneSource(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Res() res: Response,
-  ) {
+  async getOneSource(@Param('id', new ParseUUIDPipe()) id: string) {
     const entity = await this.taleImagesService.findOne(id);
 
     const filePath = path.resolve(
@@ -99,8 +97,9 @@ export class TaleImagesController extends BaseEntityService<TaleImageRdo> {
     );
     if (!existsSync(filePath)) throw new TaleImageNotFoundException();
 
-    res.setHeader('Content-Type', resolveMimeType(entity.filename));
-    return createReadStream(filePath).pipe(res);
+    return new StreamableFile(createReadStream(filePath), {
+      type: resolveMimeType(entity.filename),
+    });
   }
 
   @Patch(':id')
