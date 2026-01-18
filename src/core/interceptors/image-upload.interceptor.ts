@@ -3,7 +3,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import path, { extname } from 'path';
 import { randomUUID } from 'crypto';
-import { storageConfig, taleImagesStorageConfig } from '../configs';
+import { storageConfig } from '../configs';
 
 type MulterInterceptor = Type<NestInterceptor<any, any>>;
 
