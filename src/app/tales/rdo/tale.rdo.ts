@@ -11,6 +11,10 @@ export class TaleRdo {
   @Expose()
   name: string;
 
+  @ApiProperty({ example: 'malahitovay-shkatulka' })
+  @Expose()
+  slug: string;
+
   @ApiPropertyOptional({ type: () => TaleImageRdo })
   @Expose()
   @Transform(({ value }) => (value ? plainToInstance(TaleImageRdo, value) : value))

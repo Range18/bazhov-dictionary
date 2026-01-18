@@ -8,6 +8,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app/app.module';
 import { apiConfig } from './core/configs';
+import {TaleImageRdo} from "./app/tale-images/rdo/tale-image.rdo";
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -32,6 +33,7 @@ async function bootstrap() {
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
 
+    TaleImageRdo.init(apiConfig.url);
 
   const config = new DocumentBuilder()
       .setTitle('Словарь Бажова API')
