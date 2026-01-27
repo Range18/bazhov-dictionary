@@ -10,8 +10,8 @@ export class Tale {
     @Column()
     name: string;
 
-    @Column({nullable: true})
-    slug?: string;
+    @Column({nullable: false, unique: true})
+    slug: string;
 
     @OneToMany(() => Word, (word) => word.tale)
     words: Word[];
