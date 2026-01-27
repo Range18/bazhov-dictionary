@@ -48,7 +48,8 @@ export class WordsService {
     }
 
     const [data, count] = await qb
-        .orderBy('w.word COLLATE "ru-RU-x-icu"', 'ASC')
+        .addSelect('w.word COLLATE "ru-RU-x-icu"', 'word_ru')
+        .orderBy('word_ru', 'ASC')
         .skip(skip)
         .take(limit)
         .getManyAndCount();
