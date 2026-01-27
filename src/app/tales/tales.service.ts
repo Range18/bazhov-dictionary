@@ -13,17 +13,32 @@ export class TalesService {
   constructor(
     @InjectRepository(Tale)
     private readonly repo: Repository<Tale>,
-  ) {}
+  ) {
+  }
 
   async create(dto: CreateTaleDto): Promise<Tale> {
     const entity = this.repo.create({
       name: dto.name,
+      slug: dto.slug,
       taleImage: dto.taleImageId
         ? ({ id: dto.taleImageId } as TaleImage)
         : null,
     });
 
     return this.repo.save(entity);
+  }
+
+  async findBySlug(slug: string): Promise<Tale> {
+    const entity = await this.repo.findOne({
+      where: { slug },
+      relations: ['taleImage'],
+    });
+
+    if (!entity) {
+      throw new TaleNotFoundException();
+    }
+
+    return entity;
   }
 
   async findAll(query: TaleQueryDto): Promise<{ data: Tale[]; count: number }> {
@@ -66,6 +81,8 @@ export class TalesService {
     }
 
     if (dto.name !== undefined) entity.name = dto.name;
+
+    if (dto.slug !== undefined) entity.slug = dto.slug;
 
     if (dto.taleImageId !== undefined) {
       entity.taleImage = dto.taleImageId

@@ -67,6 +67,16 @@ export class TalesController extends BaseEntityService<TaleRdo> {
     };
   }
 
+  @Get('slug/:slug')
+  @ApiOperation({ summary: 'Get tale by slug' })
+  @ApiParam({ name: 'slug', example: 'kamennyi-gorod' })
+  @ApiOkResponse({ type: TaleRdo })
+  @ApiNotFoundResponse({ description: 'Tale not found' })
+  async findBySlug(@Param('slug') slug: string): Promise<TaleRdo> {
+    return this.formatToRdo(await this.talesService.findBySlug(slug));
+  }
+
+
   @Get(':id')
   @ApiOperation({ summary: 'Get tale by id' })
   @ApiParam({ name: 'id', format: 'uuid' })
