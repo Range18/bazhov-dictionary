@@ -1,5 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsUUID } from 'class-validator';
+import { Type } from 'class-transformer';
+import { ArrayMinSize, IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { WordExampleInputDto } from './word-example-input.dto';
 
 export class UpdateWordDto {
     @ApiPropertyOptional({ example: 'Малахит' })
@@ -17,13 +19,14 @@ export class UpdateWordDto {
     @IsString()
     description?: string;
 
-    @ApiPropertyOptional({ example: 'Пример...' })
+    @ApiPropertyOptional({
+        type: [WordExampleInputDto],
+        description: 'Если передано — полностью заменяет список примеров',
+    })
     @IsOptional()
-    @IsString()
-    exampleText?: string;
-
-    @ApiPropertyOptional({ example: '7d3f6d6a-6d7f-4c1a-9e84-1cc0f7f20c2a' })
-    @IsOptional()
-    @IsUUID()
-    taleId?: string | null;
+    @IsArray()
+    @ArrayMinSize(1)
+    @ValidateNested({ each: true })
+    @Type(() => WordExampleInputDto)
+    examples?: WordExampleInputDto[];
 }

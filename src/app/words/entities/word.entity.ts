@@ -1,11 +1,5 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
-import { Tale } from '../../tales/entities/tale.entity';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { WordExample } from './word-example.entity';
 
 @Entity('words')
 export class Word {
@@ -21,14 +15,8 @@ export class Word {
   @Column()
   description: string;
 
-  @Column()
-  exampleText: string;
-
-  @ManyToOne(() => Tale, (tale) => tale.words, {
-    eager: true,
-    nullable: false,
-    onDelete: 'CASCADE',
+  @OneToMany(() => WordExample, (ex) => ex.word, {
+    cascade: true,
   })
-  @JoinColumn()
-  tale: Tale;
+  examples: WordExample[];
 }

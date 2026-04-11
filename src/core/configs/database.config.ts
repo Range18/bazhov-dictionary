@@ -5,7 +5,7 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 export const databaseConfig: TypeOrmModuleOptions = {
   type: 'postgres',
   autoLoadEntities: true,
-  synchronize: true,
+  synchronize: get('DATABASE_SYNCHRONIZE').default('true').asBool(),
   host: get('DATABASE_HOST').required().asString(),
   port: get('DATABASE_PORT').required().asPortNumber(),
   database: get('DATABASE_NAME').required().asString(),

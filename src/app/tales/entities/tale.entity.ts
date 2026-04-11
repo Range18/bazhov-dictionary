@@ -1,5 +1,5 @@
 import {Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn} from 'typeorm';
-import {Word} from '../../words/entities/word.entity';
+import {WordExample} from '../../words/entities/word-example.entity';
 import {TaleImage} from "../../tale-images/entities/tale-image.entity";
 
 @Entity('tales')
@@ -13,8 +13,8 @@ export class Tale {
     @Column({nullable: false, unique: true})
     slug: string;
 
-    @OneToMany(() => Word, (word) => word.tale)
-    words: Word[];
+    @OneToMany(() => WordExample, (ex) => ex.tale)
+    wordExamples: WordExample[];
 
     @OneToOne(() => TaleImage, {nullable: true, onDelete: "SET NULL", eager: true})
     @JoinColumn()

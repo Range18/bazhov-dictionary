@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Word } from './entities/word.entity';
+import { WordExample } from './entities/word-example.entity';
 import { WordQueryDto } from './dto/word-query.dto';
 import { CreateWordDto } from './dto/create-word.dto';
 import { UpdateWordDto } from './dto/update-word.dto';
@@ -12,6 +13,8 @@ export class WordsService {
   constructor(
       @InjectRepository(Word)
       private readonly repo: Repository<Word>,
+      @InjectRepository(WordExample)
+      private readonly examplesRepo: Repository<WordExample>,
   ) {}
 
   async create(dto: CreateWordDto): Promise<Word> {
@@ -19,8 +22,12 @@ export class WordsService {
       word: dto.word,
       wordWithAccent: dto.wordWithAccent,
       description: dto.description,
-      exampleText: dto.exampleText,
-      ...(dto.taleId ? { tale: { id: dto.taleId } } : {}),
+      examples: dto.examples.map((e) =>
+        this.examplesRepo.create({
+          exampleText: e.exampleText,
+          tale: { id: e.taleId },
+        }),
+      ),
     });
 
     return this.repo.save(entity);
@@ -31,28 +38,38 @@ export class WordsService {
     const limit = query.limit;
     const skip = page !== undefined && limit !== undefined ? (page - 1) * limit : undefined;
 
-    const qb = this.repo
-        .createQueryBuilder('w')
-        .leftJoinAndSelect('w.tale', 't');
+    const base = this.repo.createQueryBuilder('w');
 
     if (query.tale) {
-      qb.andWhere('t.slug = :slug', { slug: query.tale });
+      base.andWhere(
+          `EXISTS (
+            SELECT 1 FROM word_examples we
+            INNER JOIN tales tl ON tl.id = we."taleId"
+            WHERE we."wordId" = w.id AND tl.slug = :slug
+          )`,
+          { slug: query.tale },
+      );
     }
 
     if (query.search) {
-      qb.andWhere('(w.word ILIKE :s OR w.wordWithAccent ILIKE :s)', { s: `%${query.search}%` });
+      base.andWhere('(w.word ILIKE :s OR w.wordWithAccent ILIKE :s)', { s: `%${query.search}%` });
     }
 
     if (query.byLetter) {
-      qb.andWhere('w.word ILIKE :p', { p: `${query.byLetter}%` });
+      base.andWhere('w.word ILIKE :p', { p: `${query.byLetter}%` });
     }
 
-    const [data, count] = await qb
+    const count = await base.getCount();
+
+    const data = await base
+        .clone()
+        .leftJoinAndSelect('w.examples', 'ex')
+        .leftJoinAndSelect('ex.tale', 't')
         .addSelect('w.word COLLATE "ru-RU-x-icu"', 'word_ru')
         .orderBy('word_ru', 'ASC')
         .skip(skip)
         .take(limit)
-        .getManyAndCount();
+        .getMany();
 
     return { data, count };
   }
@@ -60,7 +77,7 @@ export class WordsService {
   async findOne(id: string): Promise<Word> {
     const entity = await this.repo.findOne({
       where: { id },
-      relations: { tale: true },
+      relations: { examples: { tale: true } },
     });
 
     if (!entity) {
@@ -71,7 +88,10 @@ export class WordsService {
   }
 
   async update(id: string, dto: UpdateWordDto): Promise<Word> {
-    const entity = await this.repo.findOne({ where: { id }, relations: { tale: true } });
+    const entity = await this.repo.findOne({
+      where: { id },
+      relations: { examples: true },
+    });
     if (!entity) {
       throw new WordNotFoundException();
     }
@@ -79,10 +99,17 @@ export class WordsService {
     if (dto.word !== undefined) entity.word = dto.word;
     if (dto.wordWithAccent !== undefined) entity.wordWithAccent = dto.wordWithAccent;
     if (dto.description !== undefined) entity.description = dto.description;
-    if (dto.exampleText !== undefined) entity.exampleText = dto.exampleText;
 
-    if (dto.taleId !== undefined) {
-      entity.tale = dto.taleId ? ({ id: dto.taleId } as any) : null;
+    if (dto.examples !== undefined) {
+      if (entity.examples?.length) {
+        await this.examplesRepo.remove(entity.examples);
+      }
+      entity.examples = dto.examples.map((e) =>
+        this.examplesRepo.create({
+          exampleText: e.exampleText,
+          tale: { id: e.taleId },
+        }),
+      );
     }
 
     return this.repo.save(entity);
